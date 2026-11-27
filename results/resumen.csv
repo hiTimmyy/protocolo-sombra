@@ -1,0 +1,9 @@
+tamano,algoritmo,tiempo_medio_ms,nodos_medios,memoria_media_kb,muestras
+20,Dijkstra,0.034,57,8.8,45
+20,A*,0.028,35.3,7.8,45
+40,Dijkstra,0.183,282.6,42.8,45
+40,A*,0.113,139.6,23.6,45
+80,Dijkstra,0.94,1295,201.3,45
+80,A*,0.184,223,35.7,45
+160,Dijkstra,7.58,7865.3,1254.7,45
+160,A*,1.021,1037,192.7,45
