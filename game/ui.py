@@ -83,7 +83,8 @@ _DIR_ARCHIVO = {"arriba": "up", "abajo": "down", "izquierda": "left", "derecha":
 
 # Ayuda de controles que se muestra al pie del panel.
 AYUDA_CONTROLES = ["WASD/flechas: mover", "Shift: correr (hace ruido)", "E: hackear (junto a la terminal)",
-                   "F: falsa alarma   B: bloquear puerta", "R: reiniciar"]  # + Q (señuelo) se añade en el panel
+                   "R: reiniciar"]  # + Q (señuelo) y, con --debug, F/B se añaden en el panel
+AYUDA_DEBUG = ["[debug] F: falsa alarma (casilla del ratón)", "[debug] B: bloquear la siguiente puerta"]
 
 
 class _Sprites:
@@ -242,7 +243,7 @@ def _caja(ventana: pygame.Surface, rect: pygame.Rect) -> None:
     pygame.draw.rect(ventana, COLOR_PANEL_BORDE, rect, 2, border_radius=4)
 
 
-def _dibujar_panel(ventana: pygame.Surface, snap: Snapshot,
+def _dibujar_panel(ventana: pygame.Surface, snap: Snapshot, debug: bool,
                    fuente_tit: pygame.font.Font, fuente_txt: pygame.font.Font) -> None:
     """Panel de monitoreo: alerta global, tiempo restante, guardias y registro."""
     x0 = ventana.get_width() - ANCHO_PANEL
@@ -284,16 +285,16 @@ def _dibujar_panel(ventana: pygame.Surface, snap: Snapshot,
         _texto(ventana, fuente_tit, "Registro", (rect.x + 8, y + 6), COLOR_PANEL_TITULO)
         alto_linea = 14
         primeras = rect.y + 28
-        ayuda_y = rect.bottom - 6 - (len(AYUDA_CONTROLES) + 1) * alto_linea
+        ayuda_y = rect.bottom - 6 - (len(AYUDA_CONTROLES) + 1 + (len(AYUDA_DEBUG) if debug else 0)) * alto_linea
         max_lineas = max(0, (ayuda_y - 4 - primeras) // alto_linea)
-        ayuda = AYUDA_CONTROLES + [f"Q: señuelo de ruido ({snap.nox.senuelos} restantes)"]
+        ayuda = AYUDA_CONTROLES + [f"Q: señuelo de ruido ({snap.nox.senuelos} restantes)"] + (AYUDA_DEBUG if debug else [])
         for i, linea in enumerate(ayuda):
             _texto(ventana, fuente_txt, linea, (rect.x + 8, ayuda_y + i * alto_linea), COLOR_PANEL_TITULO)
         for i, linea in enumerate(snap.log[-max_lineas:]):
             _texto(ventana, fuente_txt, linea, (rect.x + 8, primeras + i * alto_linea))
 
 
-def run(sim, fabrica=None) -> None:
+def run(sim, fabrica=None, debug: bool = False) -> None:
     """Bucle principal de la UI: un paso de simulación cada 1/ticks_por_segundo s.
 
     `fabrica` se usa al reiniciar con R (crea una simulación nueva); si es None,
@@ -339,12 +340,12 @@ def run(sim, fabrica=None) -> None:
                 if evento.type == pygame.QUIT:
                     activo = False
                 elif evento.type == pygame.KEYDOWN:
-                    if evento.key == pygame.K_f:
+                    if debug and evento.key == pygame.K_f:        # solo con --debug (eventos de prueba)
                         mx, my = pygame.mouse.get_pos()
                         casilla = (mx // TILE, my // TILE)
                         dentro = 0 <= casilla[0] < snap.mapa.ancho and 0 <= casilla[1] < snap.mapa.alto
                         sim.falsa_alarma(casilla if dentro else snap.nox.pos)
-                    elif evento.key == pygame.K_b:
+                    elif debug and evento.key == pygame.K_b:      # solo con --debug
                         for puerta in snap.mapa.puertas:
                             if puerta.estado != "bloqueada":
                                 sim.bloquear_puerta(puerta.id)
@@ -377,7 +378,7 @@ def run(sim, fabrica=None) -> None:
             # Dibujo de la escena (y pantalla de fin si ganó o perdió).
             _dibujar_escena(ventana, snap, sprites, fuente,
                             nox_prev, guardias_prev, fraccion)
-            _dibujar_panel(ventana, snap, fuente_tit, fuente_txt)
+            _dibujar_panel(ventana, snap, debug, fuente_tit, fuente_txt)
             if snap.resultado != "jugando":
                 _dibujar_fin(ventana, snap, fuente)
             pygame.display.flip()

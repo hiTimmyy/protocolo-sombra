@@ -48,10 +48,12 @@ python -m game.main --seed 3 --guardias 3   # semilla del mapa y guardias (2 a 4
 | `WASD` / flechas | Mover a Nox |
 | `Shift` (mantener) | Correr (1 casilla/tick, pero hace ruido) |
 | `E` (mantener, junto a la terminal) | Hackear (barra de progreso) |
-| `F` | Falsa alarma en la casilla del ratón |
-| `B` | Bloquear la primera puerta no bloqueada |
 | `Q` | Señuelo de ruido (3 disponibles): distrae al guardia más cercano |
 | `R` | Reiniciar la partida |
+
+**Puertas:** el jugador no las controla. Se abren solas al pasar y se cierran después; la **puerta clave** se bloquea sola al terminar el hackeo (se muestra con barrotes), pero siempre existe una ruta alterna hacia la extracción.
+
+**Modo de pruebas** (`python -m game.main --debug`): añade `F` (falsa alarma en la casilla del ratón) y `B` (bloquear la siguiente puerta), los eventos inyectables de la prueba de aceptación del profesor. No hacen falta para jugar normalmente.
 
 **Objetivo:** hackea la terminal (`T`) manteniendo `E` y llega a la extracción (`X`) sin que te vean. Si el tiempo se agota o te capturan, pierdes.
 

@@ -20,6 +20,8 @@ def main() -> None:
                         help="usa FakeSimulation en lugar de la simulación real")
     parser.add_argument("--seed", type=int, default=0, help="semilla del mapa")
     parser.add_argument("--guardias", type=int, default=3, help="número de guardias (2 a 4)")
+    parser.add_argument("--debug", action="store_true",
+                        help="activa las teclas de prueba F (falsa alarma) y B (bloquear puerta)")
     args = parser.parse_args()
 
     n_guardias = max(2, min(4, args.guardias))
@@ -30,7 +32,7 @@ def main() -> None:
         sim = Simulation(args.seed, Config(n_guardias=n_guardias))
         fabrica = lambda: Simulation(args.seed, Config(n_guardias=n_guardias))  # reinicio con R
 
-    ui.run(sim, fabrica)
+    ui.run(sim, fabrica, debug=args.debug)
 
 
 if __name__ == "__main__":
