@@ -7,9 +7,9 @@ Uso previsto:
 
 
 def main() -> None:
-    # TODO (issue #3): parsear --fake, crear Simulation(seed, config) o FakeSimulation()
+    # TODO (issue #4): parsear --fake, crear Simulation(seed, config) o FakeSimulation()
     # y llamar a game.ui.run(sim).
-    raise NotImplementedError("Pendiente: issues #1-#3.")
+    raise NotImplementedError("Pendiente: issues #2-#4.")
 
 
 if __name__ == "__main__":

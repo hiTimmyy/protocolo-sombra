@@ -1,4 +1,4 @@
-"""Interfaz Pygame (STUB: la implementa el compañero de UI, ver issues #1-#4).
+"""Interfaz Pygame (STUB: la implementa el compañero de UI, ver issues #2-#5).
 
 Reglas:
 - Solo usar la interfaz de la simulación: sim.step(accion), sim.snapshot(),
@@ -12,4 +12,4 @@ Reglas:
 
 def run(sim) -> None:
     """Bucle principal de la UI. Pendiente de implementar."""
-    raise NotImplementedError("La UI se implementa en la rama feat/ui (issues #1-#3).")
+    raise NotImplementedError("La UI se implementa en la rama feat/ui (issues #2-#4).")

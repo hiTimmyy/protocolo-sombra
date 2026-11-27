@@ -34,13 +34,13 @@ gh issue list                 # ver issues abiertas
 gh issue view N               # leer la issue N completa
 ```
 
-Lista (asignadas a SebastianPalta: #1-#6):
-- #1 [ui] Base de la UI con FakeSimulation (rama `feat/ui`)
-- #2 [ui] Elementos de juego: guardias, conos, burbujas, cámaras, puertas, hackeo, victoria/derrota, teclas (rama `feat/ui`)
-- #3 [ui] Panel de monitoreo y registro de eventos; cambiar a Simulation real con `--fake` (rama `feat/ui`)
-- #4 [ui] (opcional) Sprites reales en `assets/sprites` (rama `feat/ui`)
-- #5 [docs] Redactar `docs/INFORME.md` y completar `README.md` (rama `docs/informe`)
-- #6 [docs] Resultados reales de benchmarks/pruebas en el informe y verificar clon limpio (rama `docs/informe`)
-- #7 [core] Lógica (dev/core): NO es de este agente.
+Lista (asignadas a SebastianPalta: #2-#7):
+- #2 [ui] Base de la UI con FakeSimulation (rama `feat/ui`)
+- #3 [ui] Elementos de juego: guardias, conos, burbujas, cámaras, puertas, hackeo, victoria/derrota, teclas (rama `feat/ui`)
+- #4 [ui] Panel de monitoreo y registro de eventos; cambiar a Simulation real con `--fake` (rama `feat/ui`)
+- #5 [ui] (opcional) Sprites reales en `assets/sprites` (rama `feat/ui`)
+- #6 [docs] Redactar `docs/INFORME.md` y completar `README.md` (rama `docs/informe`)
+- #7 [docs] Resultados reales de benchmarks/pruebas en el informe y verificar clon limpio (rama `docs/informe`)
+- #8 [core] Lógica (dev/core): NO es de este agente.
 
 Procedimiento: `gh issue view N` -> crear la rama indicada desde `main` actualizado -> hacer los pasos -> verificar los criterios de aceptación -> `git push -u origin <rama>` -> `gh pr create --base main`. Nunca push a `main`.
