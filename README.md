@@ -4,6 +4,17 @@ Videojuego de sigilo en Python 3.10+ y Pygame (proyecto final de Algoritmos Comp
 
 Controlas a **Nox**, una espía que debe infiltrarse en la instalación, hackear la terminal y llegar a la zona de extracción mientras guardias autónomos (máquina de estados + Dijkstra/A*) y cámaras la vigilan.
 
+## Qué revisar (guía rápida para la evaluación)
+
+| Entregable | Dónde está |
+|---|---|
+| **Informe completo** (agentes, grafo, heurística, recursión, complejidad teórica y experimental, pruebas) | [`docs/INFORME.pdf`](docs/INFORME.pdf) (misma versión en [`docs/INFORME.md`](docs/INFORME.md)) |
+| **Juego funcional** | `python -m game.main` (ver *Instalación* y *Controles* abajo) |
+| **Código fuente** | `core/` (grafo, Dijkstra, A*, recursión), `agents/` (guardias, memoria, bus, percepción), `sim/` (simulación), `game/` (UI) |
+| **Resultados experimentales** (semillas, tiempos, costo, nodos, memoria) | `results/benchmarks.csv`, `results/resumen.csv`, `results/partidas.csv`, `results/cobertura.csv` y gráficas `results/*.png` |
+| **Resultados de pruebas** | `results/pruebas.txt` (comando: `pytest`) |
+| **Demostración de las 5 escenas** | `results/escenas.txt` y capturas en el informe (comando: `python bench/demo_escenas.py`) |
+
 ## Instalación
 
 Requisitos: Python 3.10 o superior.
@@ -39,6 +50,7 @@ python -m game.main --seed 3 --guardias 3   # semilla del mapa y guardias (2 a 4
 | `E` (mantener, junto a la terminal) | Hackear (barra de progreso) |
 | `F` | Falsa alarma en la casilla del ratón |
 | `B` | Bloquear la primera puerta no bloqueada |
+| `Q` | Señuelo de ruido (3 disponibles): distrae al guardia más cercano |
 | `R` | Reiniciar la partida |
 
 **Objetivo:** hackea la terminal (`T`) manteniendo `E` y llega a la extracción (`X`) sin que te vean. Si el tiempo se agota o te capturan, pierdes.
