@@ -102,6 +102,36 @@ def comparar_cobertura(semillas=range(1, 21), max_ticks=600):
     return filas
 
 
+def comparar_en_partidas(semillas=range(1, 11), ticks=400):
+    """Datos REALES del juego: en cada búsqueda que hace un guardia durante una partida simulada
+    se ejecutan Dijkstra y A* con el MISMO grafo, origen y destino (comparación pareada)."""
+    import agents.guard as guard_mod
+    registros = []
+    original = (guard_mod.a_estrella, guard_mod.dijkstra)
+
+    def pareado(grafo, origen, destino, *a):
+        rd, ra = dijkstra(grafo, origen, destino), a_estrella(grafo, origen, destino)
+        registros.append([rd.costo, ra.costo, rd.nodos_expandidos, ra.nodos_expandidos,
+                          rd.tiempo_s, ra.tiempo_s])
+        return ra
+    guard_mod.a_estrella = guard_mod.dijkstra = pareado
+    try:
+        for seed in semillas:
+            sim = Simulation(seed, Config(n_guardias=4))
+            sim.falsa_alarma(sim.mapa.waypoints[-1])                # fuerza investigación y búsqueda
+            for t in range(ticks):
+                if t == 150:
+                    sim.bloquear_puerta(sim.mapa.puerta_clave)      # fuerza replaneos
+                sim.step()
+    finally:
+        guard_mod.a_estrella, guard_mod.dijkstra = original
+    assert all(r[0] == r[1] for r in registros), "Costos distintos en partida"
+    n = len(registros)
+    media = lambda i: st.mean(r[i] for r in registros)
+    return [["Dijkstra", n, round(media(4) * 1000, 4), round(media(2), 1), round(media(0), 2)],
+            ["A*", n, round(media(5) * 1000, 4), round(media(3), 1), round(media(1), 2)]]
+
+
 def guardar_csv(nombre, cabecera, filas):
     os.makedirs(RESULTS, exist_ok=True)
     with open(os.path.join(RESULTS, nombre), "w", newline="", encoding="utf-8") as f:
@@ -146,6 +176,10 @@ def main():
         print(f"  {r[0]:>4}x{r[0]:<4} {r[1]:<9} {r[2]:>9.3f} ms  {r[3]:>9.1f} nodos  {r[4]:>8.1f} KB")
     cob = comparar_cobertura()
     guardar_csv("cobertura.csv", ["semilla", "cobertura", "ticks_hasta_deteccion", "detectado"], cob)
+    partidas = comparar_en_partidas()
+    guardar_csv("partidas.csv", ["algoritmo", "busquedas", "tiempo_medio_ms", "nodos_medios", "costo_medio"], partidas)
+    for r in partidas:
+        print(f"  partidas {r[0]:<9} {r[1]} búsquedas: {r[2]:.4f} ms, {r[3]} nodos, costo {r[4]}")
     medias = graficas(resumen, cob)
     for c, v in medias.items():
         det = sum(f[3] for f in cob if f[1] == c)

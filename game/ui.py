@@ -78,6 +78,14 @@ def _secuencia(prefijo: str, color: tuple) -> list:
     return [_cargar_sprite(f"{prefijo}_{i}.png", color) for i in range(3)]
 
 
+# Los PNG usan nombres en inglés (assets/README.md); la simulación usa direcciones en español.
+_DIR_ARCHIVO = {"arriba": "up", "abajo": "down", "izquierda": "left", "derecha": "right"}
+
+# Ayuda de controles que se muestra al pie del panel.
+AYUDA_CONTROLES = ["WASD/flechas: mover", "Shift: correr (hace ruido)", "E: hackear (junto a la terminal)",
+                   "F: falsa alarma   B: bloquear puerta", "R: reiniciar"]
+
+
 class _Sprites:
     """Sprites precargados del mapa, personajes y burbujas (con respaldo por código)."""
 
@@ -94,9 +102,9 @@ class _Sprites:
             "cerrada": _cargar_sprite("door_closed.png", COLOR_PUERTA_CERRADA),
             "bloqueada": _cargar_sprite("door_blocked.png", COLOR_PUERTA_BLOQUEADA),
         }
-        self.nox = {d: _secuencia(f"nox_{d}", COLOR_NOX)
+        self.nox = {d: _secuencia(f"nox_{_DIR_ARCHIVO[d]}", COLOR_NOX)
                     for d in ("arriba", "abajo", "izquierda", "derecha")}
-        self.guard = {d: _secuencia(f"guard_{d}", COLOR_GUARDIA)
+        self.guard = {d: _secuencia(f"guard_{_DIR_ARCHIVO[d]}", COLOR_GUARDIA)
                       for d in ("arriba", "abajo", "izquierda", "derecha")}
         self.camara = _cargar_sprite("camera.png", COLOR_CAMARA)
         self.burbujas = {
@@ -276,7 +284,10 @@ def _dibujar_panel(ventana: pygame.Surface, snap: Snapshot,
         _texto(ventana, fuente_tit, "Registro", (rect.x + 8, y + 6), COLOR_PANEL_TITULO)
         alto_linea = 14
         primeras = rect.y + 28
-        max_lineas = max(0, (rect.bottom - 6 - primeras) // alto_linea)
+        ayuda_y = rect.bottom - 6 - len(AYUDA_CONTROLES) * alto_linea
+        max_lineas = max(0, (ayuda_y - 4 - primeras) // alto_linea)
+        for i, linea in enumerate(AYUDA_CONTROLES):
+            _texto(ventana, fuente_txt, linea, (rect.x + 8, ayuda_y + i * alto_linea), COLOR_PANEL_TITULO)
         for i, linea in enumerate(snap.log[-max_lineas:]):
             _texto(ventana, fuente_txt, linea, (rect.x + 8, primeras + i * alto_linea))
 
