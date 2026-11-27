@@ -10,4 +10,4 @@ pytest
 python bench/run_benchmarks.py
 ```
 
-> Instalación detallada y controles: pendiente (issue #5).
+> Instalación detallada y controles: pendiente (issue #6).
