@@ -15,3 +15,7 @@ env/
 .DS_Store
 # Material del curso (no versionar)
 *.pdf
+
+# Informe: se versiona el PDF final
+!docs/INFORME.pdf
+docs/INFORME.html
