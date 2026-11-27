@@ -17,3 +17,6 @@ Carpeta: `assets/sprites/`. Si falta un PNG, la UI dibuja un reemplazo por códi
 | `bubble_question.png` | Burbuja "?" (investiga / busca) |
 
 Estética: RPG antiguo tipo GBA. Sin assets con copyright.
+
+> Créditos: los sprites actuales son pixel art 16x16 original del equipo
+> (generados por código para este proyecto, dominio público del repositorio).
