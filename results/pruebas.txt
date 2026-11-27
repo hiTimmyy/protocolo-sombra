@@ -1,0 +1,20 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.5, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\hitim\Downloads\ProyectoAlgoritmos\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\hitim\Downloads\ProyectoAlgoritmos
+configfile: pytest.ini
+testpaths: tests
+collecting ... collected 10 items
+
+tests/test_agentes.py::test_falsa_alarma_investiga_y_deja_de_buscar_al_caducar PASSED [ 10%]
+tests/test_agentes.py::test_puerta_bloqueada_replanifica_y_reorganiza_patrullas PASSED [ 20%]
+tests/test_agentes.py::test_simulacion_completa_corre PASSED             [ 30%]
+tests/test_agentes.py::test_hackeo_alerta_global_y_victoria PASSED       [ 40%]
+tests/test_fake_sim.py::test_fake_snapshot_y_acciones PASSED             [ 50%]
+tests/test_pathfinding.py::test_mismo_costo_en_mapas_generados PASSED    [ 60%]
+tests/test_pathfinding.py::test_alfombra_y_puerta_bloqueada PASSED       [ 70%]
+tests/test_pathfinding.py::test_sin_camino PASSED                        [ 80%]
+tests/test_recursion.py::test_termina_por_limite PASSED                  [ 90%]
+tests/test_recursion.py::test_termina_en_callejon_y_con_tope PASSED      [100%]
+
+============================= 10 passed in 0.26s ==============================
