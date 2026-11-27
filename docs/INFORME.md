@@ -48,7 +48,9 @@ En una instalación ficticia, Nox debe recuperar un archivo que demuestra el sab
 | Shift (mantener) | Correr: 1 casilla por tick, pero **genera ruido** que los guardias oyen dentro de un radio |
 | E (mantener, junto a la terminal) | Hackear: ~3 s con barra de progreso; moverse lo interrumpe |
 | Q | Señuelo de ruido (3 disponibles): genera una anomalía en la casilla libre que Nox mira, hasta 5 casillas |
-| F / B / R | Falsa alarma, bloquear una puerta, reiniciar (eventos inyectables y reinicio) |
+| R | Reiniciar la partida |
+
+Las **puertas no las controla el jugador**: se abren solas al pasar y se cierran después, y la **puerta clave** se bloquea sola al terminar el hackeo. Para demostrar la prueba de aceptación del enunciado (falsa alarma y puerta bloqueada) existe el modo `--debug`, que añade las teclas **F** (falsa alarma en la casilla del ratón) y **B** (bloquea la siguiente puerta); no se necesitan para jugar.
 
 ### 2.3 Vista, estética y duración
 
@@ -415,7 +417,7 @@ python -m venv .venv
 .venv\Scripts\activate            # Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt   # con Python 3.14: pip install pygame-ce matplotlib pytest
 
-python -m game.main --seed 3 --guardias 3   # juego (--fake usa la simulación de ejemplo)
+python -m game.main --seed 3 --guardias 3   # juego (--fake: simulación de ejemplo; --debug: teclas F y B)
 pytest                                      # pruebas
 python bench/run_benchmarks.py              # benchmarks (results/*.csv y gráficas)
 python bench/demo_escenas.py                # registro de las 5 escenas (results/escenas.txt)
