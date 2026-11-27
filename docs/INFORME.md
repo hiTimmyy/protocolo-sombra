@@ -125,13 +125,72 @@ La prueba correspondiente está en `tests/test_recursion.py`.
 
 ## 6. Resultados experimentales
 
-TODO resultados
+Resultados reales generados con `python bench/run_benchmarks.py` (equipo: Windows 11,
+AMD64, Python 3.14.5; 45 muestras por condición) y `pytest` (salida completa en
+`results/pruebas.txt`). Datos crudos: `results/benchmarks.csv`, `results/resumen.csv`,
+`results/cobertura.csv`; gráficas: `results/grafica_dijkstra_vs_astar.png` y
+`results/grafica_cobertura.png`.
 
-<!-- Issue de resultados: completar con los valores REALES de results/benchmarks.csv,
-results/resumen.csv, results/cobertura.csv, results/*.png y results/pruebas.txt
-(generados por python bench/run_benchmarks.py y pytest). No inventar números.
-Incluir: V y E de los mapas; comparativa Dijkstra vs A* (costo, nodos expandidos, tiempo);
-cobertura fija vs dinámica; salida de pytest. -->
+**Tamaño de los grafos** (`Grafo.V`, `Grafo.E` en `core/graph.py`; mapas de
+`sim/mapgen.py`, semilla 11):
+
+| Mapa | V (vértices) | E (aristas) |
+|---|---|---|
+| 20x20 | 134 | 406 |
+| 40x40 | 585 | 1782 |
+| 80x80 | 2950 | 9390 |
+| 160x160 | 16617 | 55344 |
+
+**Dijkstra vs A*** (`results/resumen.csv`; medias de 45 búsquedas por condición):
+
+| Mapa | Dijkstra: tiempo | Dijkstra: nodos | Dijkstra: memoria | A*: tiempo | A*: nodos | A*: memoria |
+|---|---|---|---|---|---|---|
+| 20x20 | 0.044 ms | 57.0 | 8.8 KB | 0.036 ms | 35.3 | 7.8 KB |
+| 40x40 | 0.229 ms | 282.6 | 42.8 KB | 0.144 ms | 139.6 | 23.6 KB |
+| 80x80 | 1.143 ms | 1295.0 | 201.3 KB | 0.229 ms | 223.0 | 35.7 KB |
+| 160x160 | 9.428 ms | 7865.3 | 1254.7 KB | 1.248 ms | 1037.0 | 192.7 KB |
+
+Lectura de los resultados:
+
+- **El costo de las rutas es idéntico** en todas las condiciones (verificado por el propio
+  benchmark: "OK: el costo de A* es igual al de Dijkstra en todas las condiciones"), como
+  predice la teoría: con heurística Manhattan admisible y consistente (sección 3), A* es
+  óptimo igual que Dijkstra.
+- **Nodos expandidos:** A* expande 2-7 veces menos nodos que Dijkstra, y la ventaja crece
+  con el tamaño del mapa (en 160x160 expande 1037 frente a 7865, un 87 % menos) porque la
+  heurística dirige la búsqueda hacia el destino.
+- **Tiempo:** la diferencia se hace evidente en mapas grandes: en 160x160 A* tarda 1.25 ms
+  frente a 9.43 ms de Dijkstra (7.6x más rápido). En mapas pequeños el tiempo de ambos es
+  del orden de décimas de milisegundo.
+- **Memoria pico:** A* también usa menos memoria (193 KB frente a 1255 KB en 160x160),
+  porque mantiene menos entradas vivas en la cola y en los diccionarios.
+- La ejecución se realizó con la opción por defecto del benchmark (`par=0`, pares
+  origen-destino aleatorios por semilla; ver `bench/run_benchmarks.py`).
+
+**Cobertura fija vs dinámica** (`results/cobertura.csv`; 20 semillas, 600 ticks máximo):
+
+| Cobertura | Ticks medios hasta detectar | Detecciones |
+|---|---|---|
+| Fija | 165.7 | 15 / 20 |
+| Dinámica | 130.8 | 16 / 20 |
+
+La cobertura **dinámica** (los guardias reaccionan a ruidos y mensajes del bus,
+`cobertura: "dinamica"` en `sim/simulation.py`) detecta antes (130.8 frente a 165.7 ticks)
+y en más semillas (16 frente a 15 de 20). En las semillas sin detección (600 = no detectó),
+la cobertura fija falla en 1, 4, 10 y 13; la dinámica en 6, 12, 17 y 19: la reactividad
+cambia *dónde* falla más que cuántas veces. El detalle por semilla está en
+`results/cobertura.csv` y la comparativa en `results/grafica_cobertura.png`
+(función `comparar_cobertura` de `bench/run_benchmarks.py`).
+
+**Pruebas unitarias** (`results/pruebas.txt`, salida completa de `pytest`):
+
+```
+============================= 10 passed in 0.28s ==============================
+```
+
+10 tests de `tests/test_pathfinding.py` (Dijkstra y A* devuelven costo óptimo, con y sin
+camino), `tests/test_recursion.py` (el DFS termina por límite de profundidad y en
+callejones) y `tests/` del resto del sistema.
 
 ## 7. Conclusiones y limitaciones
 

@@ -18,6 +18,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+> **Nota (Python 3.14+):** `pygame` aún no publica wheels para estas versiones. Si la
+> instalación falla al compilarlo, instala el fork compatible `pip install pygame-ce`
+> (mismas API e imports); el resto de los pasos no cambia.
+
 ## Cómo ejecutar el juego
 
 ```bash
