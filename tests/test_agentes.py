@@ -105,3 +105,50 @@ def test_hackeo_alerta_global_y_victoria():
     for _ in range(40):
         s = sim.step(Accion(mover="derecha", correr=True))
     assert s.resultado == "gano"
+
+
+def test_patrulla_usa_dfs_y_recorre_mas_que_los_waypoints():
+    sim = _sim_sala()
+    g = sim.guardias[0]
+    for _ in range(300):
+        sim.step()
+    assert g.tramos_dfs > 0                       # eligió tramos con el DFS recursivo limitado
+    assert len(g.visitas) > 10                    # cubrió muchas casillas, no solo el waypoint
+
+
+SALIDAS = [
+    "###############",
+    "#N....#.......#",
+    "#.T...D......X#",   # puerta clave (6,2) en la ruta corta
+    "#.....#.......#",
+    "#.............#",   # ruta alterna por abajo
+    "###############",
+]
+
+
+def test_hackeo_bloquea_puerta_y_guardias_cubren_salidas():
+    m = Mapa.desde_ascii(SALIDAS)
+    m.puerta_clave = 0
+    m.waypoints = [(12, 2)]
+    cfg = Config(guardias_inicio=[(12, 1), (12, 3)], camaras_inicio=[], alarma_ticks=5)
+    sim = Simulation(1, cfg, mapa=m)
+    sim.nox.pos = (2, 2)
+    for _ in range(31):
+        sim.step(Accion(interactuar=True))
+    assert sim.mapa.puertas[0].estado == "bloqueada"
+    assert any((13, 2) in g.waypoints for g in sim.guardias)       # cubren la extracción
+    assert any("cubren rutas de salida" in l for l in sim.bus.log)
+    for _ in range(6):
+        sim.step()
+    assert all((13, 2) not in g.waypoints for g in sim.guardias)   # fin de la alerta: patrullas normales
+
+
+def test_senuelo_distrae_al_guardia_mas_cercano():
+    sim = _sim_sala()
+    sim.step(Accion(senuelo=True))
+    assert sim.nox.senuelos == 2
+    assert sim.guardias[0].estado in (INVESTIGAR, BUSCAR)
+    lejos = Simulation(1, Config(radio_senuelo=1, guardias_inicio=[(2, 2)], camaras_inicio=[], n_guardias=1),
+                       mapa=Mapa.desde_ascii(SALA))
+    lejos.step(Accion(senuelo=True))
+    assert lejos.guardias[0].estado == PATRULLA and any("ningún guardia" in l for l in lejos.bus.log)

@@ -45,7 +45,7 @@ class Percepcion:
 class Guardia:
     def __init__(self, id: int, pos: Pos, waypoints: List[Pos], bus: Bus, algoritmo: str = "astar",
                  ttl: int = 120, radio_vision: float = 6, angulo_vision: float = 90,
-                 reactivo: bool = True, prof_busqueda: int = 6):
+                 reactivo: bool = True, prof_busqueda: int = 6, prof_patrulla: int = 8):
         self.id, self.nombre = id, f"guardia_{id}"
         self.pos, self.dir = pos, "derecha"
         self.bus, self.algoritmo = bus, algoritmo
@@ -53,6 +53,10 @@ class Guardia:
         self.radio_vision, self.angulo_vision = radio_vision, angulo_vision
         self.reactivo = reactivo            # False = cobertura fija: ignora ruido y mensajes
         self.prof_busqueda = prof_busqueda
+        self.prof_patrulla = prof_patrulla  # profundidad del DFS que explora tramos de patrulla
+        self.visitas = {}                   # casilla -> último tick en que este guardia la pisó
+        self.tramos_dfs = 0                 # cuántos tramos de patrulla eligió con DFS
+        self._en_tramo = False              # True mientras recorre un tramo elegido por DFS
         self.estado = PATRULLA
         self.waypoints: List[Pos] = []
         self.wp_idx = 0
@@ -91,6 +95,7 @@ class Guardia:
             self._fijar_objetivo(self.waypoints[self.wp_idx] if wps else None)
 
     def _fijar_objetivo(self, pos: Optional[Pos]) -> None:
+        self._en_tramo = False
         if pos != self.objetivo:
             self.objetivo, self._replan = pos, True
 
@@ -167,7 +172,10 @@ class Guardia:
                 self._cambiar(PATRULLA, env)
                 self._avanzar_waypoint()
         elif self.estado == PATRULLA and self.pos == self.objetivo:
-            self._avanzar_waypoint()
+            if self._en_tramo:
+                self._avanzar_waypoint()            # terminó el tramo: siguiente waypoint
+            else:
+                self._explorar_tramo(env)           # llegó al waypoint: explorar su entorno
 
     def _volver(self, env: Entorno) -> None:
         self._cambiar(VOLVER, env)
@@ -183,6 +191,19 @@ class Guardia:
         if self.waypoints:
             self.wp_idx = (self.wp_idx + 1) % len(self.waypoints)
             self._fijar_objetivo(self.waypoints[self.wp_idx])
+
+    def _explorar_tramo(self, env: Entorno) -> None:
+        """Patrulla con recursión: el DFS limitado enumera tramos de `prof_patrulla` pasos desde el
+        waypoint y se elige el menos visitado recientemente (cubre zonas descuidadas)."""
+        rutas, _ = rutas_dfs(env.grafo, self.pos, self.prof_patrulla, max_rutas=1500)
+        mejor = max(rutas, key=lambda r: sum(min(env.tick - self.visitas.get(c, -300), 300) for c in r[1:]),
+                    default=[self.pos])
+        if len(mejor) < 2:
+            self._avanzar_waypoint()
+            return
+        self.tramos_dfs += 1
+        self.ruta, self.objetivo = mejor[1:], mejor[-1]
+        self._replan, self._en_tramo = False, True
 
     def _generar_candidatos(self, env: Entorno, centro: Pos) -> None:
         """DFS recursivo limitado desde `centro`: los extremos de las rutas son puntos de búsqueda."""
@@ -237,5 +258,6 @@ class Guardia:
 
     def _evaluar(self, env: Entorno) -> None:
         """¿El plan sigue siendo válido? Si el siguiente paso quedó bloqueado, replanificar."""
+        self.visitas[self.pos] = env.tick
         if self.ruta and not env.mapa.transitable(self.ruta[0]):
             self._replan = True

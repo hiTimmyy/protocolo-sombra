@@ -1,0 +1,44 @@
+=== Escena 1 · Perímetro (tick 5) ===
+Nox entra por (0, 14). Los guardias patrullan sectores asignados con waypoints y tramos DFS; las cámaras vigilan sus conos. Estados: guardia_0=PATRULLA, guardia_1=PATRULLA, guardia_2=PATRULLA.
+Registro del bus (nuevas líneas):
+  (sin eventos)
+
+=== Escena 2 · Anomalía (tick 45) ===
+Falsa alarma en (15, 12): el guardia más cercano investiga la ubicación estimada y luego busca alrededor (DFS limitado). Estados: guardia_0=PATRULLA, guardia_1=BUSCAR, guardia_2=PATRULLA.
+Registro del bus (nuevas líneas):
+  [t5] sistema -> guardia_1: FALSA_ALARMA (15, 12)
+  [t6] guardia_1: PATRULLA -> INVESTIGAR
+  [t10] guardia_1: INVESTIGAR -> BUSCAR
+
+=== Escena 3 · Alerta (tick 76) ===
+Nox hackea la terminal: alerta global roja, mensaje ALARMA por el bus, la puerta clave se bloquea y las patrullas se reorganizan. Alerta: roja.
+Registro del bus (nuevas líneas):
+  [t76] Terminal hackeada: ALERTA GLOBAL
+  [t76] sistema -> todos: ALARMA (15, 12)
+  [t76] guardia_0: PATRULLA -> INVESTIGAR
+  [t76] guardia_1: PATRULLA -> INVESTIGAR
+  [t76] guardia_2: PATRULLA -> INVESTIGAR
+
+=== Escena 4 · Doble ruta (tick 86) ===
+La puerta clave quedó bloqueada: el grafo se reconstruye, los guardias replanifican (contador replan) y reparten la vigilancia de las rutas de salida hacia la extracción. Replaneos: guardia_0=1, guardia_1=1, guardia_2=1.
+Registro del bus (nuevas líneas):
+  [t76] sistema -> todos: PUERTA_BLOQUEADA (25, 12)
+  [t76] Patrullas reorganizadas: guardia_0=2 puntos, guardia_1=2 puntos, guardia_2=2 puntos
+  [t76] Guardias cubren rutas de salida: guardia_0->[(25, 9)], guardia_1->[(19, 2)], guardia_2->[(15, 5)]
+  [t76] guardia_0: REPLAN por cambio de puerta (costo 19)
+  [t76] guardia_1: REPLAN por cambio de puerta (costo 19)
+  [t76] guardia_2: REPLAN por cambio de puerta (costo 13)
+
+=== Escena 5 · Extracción (tick 267) ===
+Tras la alerta, la evidencia del terminal caduca (TTL) y los guardias alternan BÚSQUEDA y RETORNO a patrulla (estados antes de la salida: guardia_0=PATRULLA, guardia_1=PATRULLA, guardia_2=PATRULLA). Nox alcanza la extracción con el archivo: resultado = gano.
+Registro del bus (nuevas líneas):
+  [t102] guardia_2: INVESTIGAR -> BUSCAR
+  [t114] guardia_0: INVESTIGAR -> BUSCAR
+  [t114] guardia_1: INVESTIGAR -> BUSCAR
+  [t137] guardia_0: BUSCAR -> VOLVER_A_PATRULLA
+  [t137] guardia_1: BUSCAR -> VOLVER_A_PATRULLA
+  [t137] guardia_2: BUSCAR -> VOLVER_A_PATRULLA
+  [t146] guardia_2: VOLVER_A_PATRULLA -> PATRULLA
+  [t176] Patrullas reorganizadas: guardia_0=2 puntos, guardia_1=2 puntos, guardia_2=2 puntos
+  [t206] guardia_1: VOLVER_A_PATRULLA -> PATRULLA
+  [t215] guardia_0: VOLVER_A_PATRULLA -> PATRULLA

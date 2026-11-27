@@ -69,8 +69,8 @@ def resumir(filas):
     return resumen
 
 
-def jugar_bot(seed: int, cobertura: str, max_ticks: int = 600):
-    """Nox automática (corre hacia la terminal por Dijkstra). Devuelve el tick de la primera
+def jugar_bot(seed: int, cobertura: str, max_ticks: int = 600, correr: bool = True):
+    """Nox automática (va hacia la terminal por Dijkstra, corriendo o caminando). Devuelve el tick de la primera
     detección visual por un guardia (o None si no la hubo en `max_ticks`)."""
     sim = Simulation(seed, Config(cobertura=cobertura))
     destino = sim.mapa.terminal
@@ -85,20 +85,23 @@ def jugar_bot(seed: int, cobertura: str, max_ticks: int = 600):
             sig = r.ruta[1]
             dir_ = {(0, -1): "arriba", (0, 1): "abajo", (-1, 0): "izquierda", (1, 0): "derecha"}[
                 (sig[0] - nox[0], sig[1] - nox[1])]
-            accion = Accion(mover=dir_, correr=True)
+            accion = Accion(mover=dir_, correr=correr)
         sim.step(accion)
         if any(g.estado == "ALERTA" for g in sim.guardias):
             return sim.tick
     return None
 
 
-def comparar_cobertura(semillas=range(1, 21), max_ticks=600):
-    """Cobertura fija (patrullas fijas, solo visión propia) vs dinámica (reacciona a ruido y bus)."""
+def comparar_cobertura(semillas=range(1, 41), max_ticks=600):
+    """Cobertura fija (patrullas fijas, solo visión propia) vs dinámica (reacciona a ruido y bus),
+    con Nox corriendo (hace ruido) y caminando (silenciosa)."""
     filas = []
     for seed in semillas:
         for cob in ("fija", "dinamica"):
-            t = jugar_bot(seed, cob, max_ticks)
-            filas.append([seed, cob, t if t is not None else max_ticks, int(t is not None)])
+            for correr in (True, False):
+                t = jugar_bot(seed, cob, max_ticks, correr)
+                filas.append([seed, cob, "corriendo" if correr else "caminando",
+                              t if t is not None else max_ticks, int(t is not None)])
     return filas
 
 
@@ -153,10 +156,11 @@ def graficas(resumen, cob):
     fig.tight_layout()
     fig.savefig(os.path.join(RESULTS, "grafica_dijkstra_vs_astar.png"), dpi=120)
     plt.close(fig)
-    medias = {c: st.mean(f[2] for f in cob if f[1] == c) for c in ("fija", "dinamica")}
-    fig, ax = plt.subplots(figsize=(5, 4))
-    ax.bar(list(medias), list(medias.values()), color=["#888", "#c33"])
-    ax.set(title="Ticks hasta que un guardia ve a Nox", ylabel="ticks (menor = mejor)")
+    combos = [(c, m) for m in ("caminando", "corriendo") for c in ("fija", "dinamica")]
+    medias = {f"{c}\n{m}": st.mean(f[3] for f in cob if f[1] == c and f[2] == m) for c, m in combos}
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.bar(list(medias), list(medias.values()), color=["#888", "#c33", "#888", "#c33"])
+    ax.set(title="Ticks hasta que un guardia ve a Nox", ylabel="ticks (menor = detecta antes)")
     fig.tight_layout()
     fig.savefig(os.path.join(RESULTS, "grafica_cobertura.png"), dpi=120)
     plt.close(fig)
@@ -175,15 +179,17 @@ def main():
     for r in resumen:
         print(f"  {r[0]:>4}x{r[0]:<4} {r[1]:<9} {r[2]:>9.3f} ms  {r[3]:>9.1f} nodos  {r[4]:>8.1f} KB")
     cob = comparar_cobertura()
-    guardar_csv("cobertura.csv", ["semilla", "cobertura", "ticks_hasta_deteccion", "detectado"], cob)
+    guardar_csv("cobertura.csv", ["semilla", "cobertura", "nox", "ticks_hasta_deteccion", "detectado"], cob)
     partidas = comparar_en_partidas()
     guardar_csv("partidas.csv", ["algoritmo", "busquedas", "tiempo_medio_ms", "nodos_medios", "costo_medio"], partidas)
     for r in partidas:
         print(f"  partidas {r[0]:<9} {r[1]} búsquedas: {r[2]:.4f} ms, {r[3]} nodos, costo {r[4]}")
     medias = graficas(resumen, cob)
-    for c, v in medias.items():
-        det = sum(f[3] for f in cob if f[1] == c)
-        print(f"  cobertura {c:<8}: {v:.1f} ticks hasta ver a Nox ({det}/{len(cob)//2} detecciones)")
+    for c in ("fija", "dinamica"):
+        for m in ("caminando", "corriendo"):
+            f = [x for x in cob if x[1] == c and x[2] == m]
+            print(f"  cobertura {c:<8} Nox {m:<9}: media {st.mean(x[3] for x in f):6.1f} ticks, "
+                  f"mediana {st.median(x[3] for x in f):6.1f}, detecciones {sum(x[4] for x in f)}/{len(f)}")
     print(f"Resultados en {RESULTS}")
 
 
