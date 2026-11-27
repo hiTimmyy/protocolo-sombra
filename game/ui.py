@@ -83,7 +83,7 @@ _DIR_ARCHIVO = {"arriba": "up", "abajo": "down", "izquierda": "left", "derecha":
 
 # Ayuda de controles que se muestra al pie del panel.
 AYUDA_CONTROLES = ["WASD/flechas: mover", "Shift: correr (hace ruido)", "E: hackear (junto a la terminal)",
-                   "F: falsa alarma   B: bloquear puerta", "R: reiniciar"]
+                   "F: falsa alarma   B: bloquear puerta", "R: reiniciar"]  # + Q (señuelo) se añade en el panel
 
 
 class _Sprites:
@@ -284,9 +284,10 @@ def _dibujar_panel(ventana: pygame.Surface, snap: Snapshot,
         _texto(ventana, fuente_tit, "Registro", (rect.x + 8, y + 6), COLOR_PANEL_TITULO)
         alto_linea = 14
         primeras = rect.y + 28
-        ayuda_y = rect.bottom - 6 - len(AYUDA_CONTROLES) * alto_linea
+        ayuda_y = rect.bottom - 6 - (len(AYUDA_CONTROLES) + 1) * alto_linea
         max_lineas = max(0, (ayuda_y - 4 - primeras) // alto_linea)
-        for i, linea in enumerate(AYUDA_CONTROLES):
+        ayuda = AYUDA_CONTROLES + [f"Q: señuelo de ruido ({snap.nox.senuelos} restantes)"]
+        for i, linea in enumerate(ayuda):
             _texto(ventana, fuente_txt, linea, (rect.x + 8, ayuda_y + i * alto_linea), COLOR_PANEL_TITULO)
         for i, linea in enumerate(snap.log[-max_lineas:]):
             _texto(ventana, fuente_txt, linea, (rect.x + 8, primeras + i * alto_linea))
@@ -319,6 +320,7 @@ def run(sim, fabrica=None) -> None:
         nox_prev = snap.nox.pos
         guardias_prev = {g.id: g.pos for g in snap.guardias}
         reiniciar = False
+        senuelo_pendiente = False
 
         while activo and not reiniciar:
             # Entrada continua: mover (WASD/flechas), correr (Shift), hackear (E).
@@ -347,11 +349,14 @@ def run(sim, fabrica=None) -> None:
                             if puerta.estado != "bloqueada":
                                 sim.bloquear_puerta(puerta.id)
                                 break
+                    elif evento.key == pygame.K_q:
+                        senuelo_pendiente = True
                     elif evento.key == pygame.K_r:
                         reiniciar = True  # sale para crear una simulación nueva
 
             if reiniciar:
                 break
+            accion.senuelo = senuelo_pendiente
 
             if snap.resultado == "jugando":
                 # Avance del tiempo: un paso de simulación cuando toca.
@@ -360,6 +365,7 @@ def run(sim, fabrica=None) -> None:
                     nox_prev = snap.nox.pos
                     guardias_prev = {g.id: g.pos for g in snap.guardias}
                     snap = sim.step(accion)
+                    accion.senuelo = senuelo_pendiente = False
                     acumulado -= paso_s
                     if snap.resultado != "jugando":
                         break

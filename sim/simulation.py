@@ -14,7 +14,7 @@ from agents.camara import Camara
 from agents.guard import ALERTA, BUSCAR, INVESTIGAR, Entorno, Guardia
 from agents.perception import celdas_visibles
 from core.graph import Mapa, construir_grafo
-from core.pathfinding import manhattan
+from core.pathfinding import dijkstra, manhattan
 from sim.contract import (Accion, CamaraSnap, GuardiaSnap, MapaSnap, NoxSnap,
                           PuertaSnap, Snapshot)
 from sim.mapgen import generar_nivel
@@ -39,6 +39,9 @@ class Config:
     radio_ruido: float = 7           # radio de audición del ruido de Nox al correr
     prof_busqueda: int = 6
     alarma_ticks: int = 100          # duración de la alerta roja tras el hackeo
+    senuelos: int = 3                # señuelos de ruido disponibles para Nox
+    radio_senuelo: float = 12        # distancia máxima a la que un guardia oye el señuelo
+    prof_patrulla: int = 8           # profundidad del DFS de patrulla
     guardias_inicio: Optional[List[Pos]] = None   # solo pruebas
     camaras_inicio: Optional[List[Tuple[Pos, str]]] = None  # solo pruebas
 
@@ -51,6 +54,7 @@ class NoxEstado:
     hack: float = 0.0
     tiene_archivo: bool = False
     cooldown: int = 0
+    senuelos: int = 0
 
 
 def asignar_patrullas(grafo, posiciones: List[Pos], waypoints: List[Pos]) -> List[List[Pos]]:
@@ -77,7 +81,8 @@ class Simulation:
         self.resultado = "jugando"
         self.alarma_hasta = -1
         self.limite_ticks = int(self.cfg.tiempo_limite_s * self.cfg.ticks_por_segundo)
-        self.nox = NoxEstado(self.mapa.entrada)
+        self.nox = NoxEstado(self.mapa.entrada, senuelos=self.cfg.senuelos)
+        self._salidas_hasta = -1
         self._crear_agentes()
 
     # ---------- creación ----------
@@ -91,7 +96,7 @@ class Simulation:
             inicios = [m.waypoints[2 + i % (n - 2)] for i in range(c.n_guardias)]
         wps = asignar_patrullas(self.grafo, inicios, m.waypoints)
         self.guardias = [Guardia(i, p, wps[i], self.bus, c.algoritmo, c.ttl_evidencia, c.radio_vision,
-                                 c.angulo_vision, c.cobertura == "dinamica", c.prof_busqueda)
+                                 c.angulo_vision, c.cobertura == "dinamica", c.prof_busqueda, c.prof_patrulla)
                          for i, p in enumerate(inicios)]
         if c.camaras_inicio is not None:
             cams = c.camaras_inicio
@@ -107,9 +112,27 @@ class Simulation:
     # ---------- eventos inyectables ----------
     def falsa_alarma(self, pos: Pos) -> None:
         """Un aviso falso en `pos`: el guardia más cercano lo investiga."""
-        pos = tuple(pos)
+        self._aviso_a_mas_cercano(tuple(pos), "FALSA_ALARMA", "sistema", None)
+
+    def _aviso_a_mas_cercano(self, pos: Pos, tipo: str, emisor: str, radio) -> None:
         cerca = min(self.guardias, key=lambda g: manhattan(g.pos, pos))
-        self.bus.publicar(Mensaje(self.tick, "sistema", "FALSA_ALARMA", pos, destino=cerca.nombre))
+        if radio is not None and manhattan(cerca.pos, pos) > radio:
+            self.bus.registrar(self.tick, f"{tipo} en {pos}: ningún guardia lo oyó")
+            return
+        self.bus.publicar(Mensaje(self.tick, emisor, tipo, pos, destino=cerca.nombre))
+
+    def _lanzar_senuelo(self) -> None:
+        """Señuelo: ruido en la casilla libre más lejana (hasta 5) en la dirección que mira Nox."""
+        n = self.nox
+        n.senuelos -= 1
+        dx, dy = _VEC[n.dir]
+        destino = n.pos
+        for k in range(1, 6):
+            sig = (n.pos[0] + dx * k, n.pos[1] + dy * k)
+            if not self.mapa.transitable(sig):
+                break
+            destino = sig
+        self._aviso_a_mas_cercano(destino, "SENUELO", "nox", self.cfg.radio_senuelo)
 
     def bloquear_puerta(self, id: int) -> None:
         """Bloquea la puerta: se reconstruye el grafo, los guardias replanifican y las patrullas se reorganizan."""
@@ -121,6 +144,24 @@ class Simulation:
         self.grafo = construir_grafo(self.mapa)
         self.bus.publicar(Mensaje(self.tick, "sistema", "PUERTA_BLOQUEADA", puerta.pos))
         self._reorganizar_patrullas()
+        if self.nox.tiene_archivo:
+            self._cubrir_salidas()
+
+    def _cubrir_salidas(self) -> None:
+        """Escena 4: con el grafo ya cambiado, los guardias reparten la vigilancia de la(s) ruta(s)
+        de salida terminal -> extracción (extracción, mitad y primer cuarto de la ruta alterna)."""
+        m = self.mapa
+        ruta = dijkstra(self.grafo, m.terminal, m.extraccion).ruta
+        if not ruta:
+            return
+        puntos = list(dict.fromkeys([m.extraccion, ruta[len(ruta) // 2], ruta[len(ruta) // 4]]))
+        listas = asignar_patrullas(self.grafo, [g.pos for g in self.guardias], puntos)
+        for g, wps in zip(self.guardias, listas):
+            if wps:
+                g.asignar_waypoints(wps)
+        self._salidas_hasta = self.tick + self.cfg.alarma_ticks
+        self.bus.registrar(self.tick, "Guardias cubren rutas de salida: " + ", ".join(
+            f"{g.nombre}->{g.waypoints}" for g in self.guardias if g.waypoints))
 
     def _reorganizar_patrullas(self) -> None:
         listas = asignar_patrullas(self.grafo, [g.pos for g in self.guardias], self.mapa.waypoints)
@@ -135,6 +176,8 @@ class Simulation:
             return self.snapshot()
         a = accion or Accion()
         self.tick += 1
+        if a.senuelo and self.nox.senuelos > 0:
+            self._lanzar_senuelo()
         hace_ruido = self._mover_nox(a)
         self._actualizar_puertas()
         env = Entorno(self.tick, self.mapa, self.grafo, self.version_grafo, self.nox.pos,
@@ -144,6 +187,8 @@ class Simulation:
         for g in self.guardias:
             g.paso(env)
         self._actualizar_puertas()
+        if self.tick == self._salidas_hasta:               # terminó la cobertura de salidas
+            self._reorganizar_patrullas()
         if self.nox.tiene_archivo and self.nox.pos == self.mapa.extraccion:
             self.resultado = "gano"
         elif any(manhattan(g.pos, self.nox.pos) <= 1 for g in self.guardias) or self.tick >= self.limite_ticks:
@@ -180,7 +225,9 @@ class Simulation:
         self.bus.registrar(self.tick, "Terminal hackeada: ALERTA GLOBAL")
         self.bus.publicar(Mensaje(self.tick, "sistema", "ALARMA", self.mapa.terminal))
         if self.mapa.puerta_clave is not None:
-            self.bloquear_puerta(self.mapa.puerta_clave)
+            self.bloquear_puerta(self.mapa.puerta_clave)   # también reorganiza y cubre salidas
+        else:
+            self._cubrir_salidas()
 
     def _actualizar_puertas(self) -> None:
         """Una puerta se abre mientras alguien está sobre ella y se cierra después."""
@@ -211,7 +258,7 @@ class Simulation:
         puertas = [PuertaSnap(p.id, p.pos, p.estado, p.id == m.puerta_clave) for p in m.puertas.values()]
         mapa = MapaSnap(m.ancho, m.alto, tiles, costos, puertas, m.entrada, m.terminal, m.extraccion)
         n = self.nox
-        nox = NoxSnap(n.pos, n.dir, n.corriendo, min(1.0, n.hack), n.tiene_archivo)
+        nox = NoxSnap(n.pos, n.dir, n.corriendo, min(1.0, n.hack), n.tiene_archivo, n.senuelos)
         gs = [GuardiaSnap(g.id, g.pos, g.dir, g.estado,
                           "!" if g.estado == ALERTA else "?" if g.estado in (INVESTIGAR, BUSCAR) else "",
                           g.objetivo, list(g.ruta), "A*" if g.algoritmo == "astar" else "Dijkstra",

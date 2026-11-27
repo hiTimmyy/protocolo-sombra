@@ -27,6 +27,7 @@ class Accion:
     mover: Optional[str] = None   # una de DIRECCIONES o None (quieta)
     correr: bool = False          # True = 1 casilla/tick pero genera ruido
     interactuar: bool = False     # True = mantener E (hackear si está junto a la terminal)
+    senuelo: bool = False         # True = lanzar un señuelo de ruido (tecla Q, cantidad limitada)
 
 
 @dataclass
@@ -58,6 +59,7 @@ class NoxSnap:
     corriendo: bool
     hackeo_progreso: float        # 0.0 - 1.0 (barra de progreso)
     tiene_archivo: bool           # True tras completar el hackeo
+    senuelos: int = 0             # señuelos de ruido que le quedan
 
 
 @dataclass

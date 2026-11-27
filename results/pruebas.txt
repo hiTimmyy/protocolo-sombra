@@ -4,17 +4,20 @@ cachedir: .pytest_cache
 rootdir: C:\Users\hitim\Downloads\ProyectoAlgoritmos
 configfile: pytest.ini
 testpaths: tests
-collecting ... collected 10 items
+collecting ... collected 13 items
 
-tests/test_agentes.py::test_falsa_alarma_investiga_y_deja_de_buscar_al_caducar PASSED [ 10%]
-tests/test_agentes.py::test_puerta_bloqueada_replanifica_y_reorganiza_patrullas PASSED [ 20%]
-tests/test_agentes.py::test_simulacion_completa_corre PASSED             [ 30%]
-tests/test_agentes.py::test_hackeo_alerta_global_y_victoria PASSED       [ 40%]
-tests/test_fake_sim.py::test_fake_snapshot_y_acciones PASSED             [ 50%]
-tests/test_pathfinding.py::test_mismo_costo_en_mapas_generados PASSED    [ 60%]
-tests/test_pathfinding.py::test_alfombra_y_puerta_bloqueada PASSED       [ 70%]
-tests/test_pathfinding.py::test_sin_camino PASSED                        [ 80%]
-tests/test_recursion.py::test_termina_por_limite PASSED                  [ 90%]
+tests/test_agentes.py::test_falsa_alarma_investiga_y_deja_de_buscar_al_caducar PASSED [  7%]
+tests/test_agentes.py::test_puerta_bloqueada_replanifica_y_reorganiza_patrullas PASSED [ 15%]
+tests/test_agentes.py::test_simulacion_completa_corre PASSED             [ 23%]
+tests/test_agentes.py::test_hackeo_alerta_global_y_victoria PASSED       [ 30%]
+tests/test_agentes.py::test_patrulla_usa_dfs_y_recorre_mas_que_los_waypoints PASSED [ 38%]
+tests/test_agentes.py::test_hackeo_bloquea_puerta_y_guardias_cubren_salidas PASSED [ 46%]
+tests/test_agentes.py::test_senuelo_distrae_al_guardia_mas_cercano PASSED [ 53%]
+tests/test_fake_sim.py::test_fake_snapshot_y_acciones PASSED             [ 61%]
+tests/test_pathfinding.py::test_mismo_costo_en_mapas_generados PASSED    [ 69%]
+tests/test_pathfinding.py::test_alfombra_y_puerta_bloqueada PASSED       [ 76%]
+tests/test_pathfinding.py::test_sin_camino PASSED                        [ 84%]
+tests/test_recursion.py::test_termina_por_limite PASSED                  [ 92%]
 tests/test_recursion.py::test_termina_en_callejon_y_con_tope PASSED      [100%]
 
-============================= 10 passed in 0.26s ==============================
+============================= 13 passed in 0.36s ==============================
