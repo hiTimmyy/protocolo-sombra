@@ -1,0 +1,3 @@
+algoritmo,busquedas,tiempo_medio_ms,nodos_medios,costo_medio
+Dijkstra,249,0.0484,56.7,14.1
+A*,249,0.027,29.2,14.1

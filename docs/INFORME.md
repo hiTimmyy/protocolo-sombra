@@ -182,6 +182,21 @@ cambia *dónde* falla más que cuántas veces. El detalle por semilla está en
 `results/cobertura.csv` y la comparativa en `results/grafica_cobertura.png`
 (función `comparar_cobertura` de `bench/run_benchmarks.py`).
 
+**Dijkstra vs A\* con datos reales del juego** (`results/partidas.csv`; función
+`comparar_en_partidas` de `bench/run_benchmarks.py`): se simularon 10 partidas completas de
+4 guardias con una falsa alarma y el bloqueo de la puerta clave. En cada búsqueda real de un
+guardia se ejecutaron Dijkstra y A\* sobre el mismo grafo, origen y destino (comparación
+pareada), 249 búsquedas en total:
+
+| Algoritmo | Tiempo medio | Nodos expandidos (media) | Costo medio |
+|---|---|---|---|
+| Dijkstra | 0.0484 ms | 56.7 | 14.1 |
+| A\* | 0.0270 ms | 29.2 | 14.1 |
+
+El costo coincide en las 249 búsquedas (comprobado con una aserción); A\* expande ~48 % menos
+nodos y tarda ~44 % menos, en línea con los mapas sintéticos. En este tamaño de mapa (30x20)
+ambas búsquedas son del orden de décimas de milisegundo, por lo que no afectan la jugabilidad.
+
 **Pruebas unitarias** (`results/pruebas.txt`, salida completa de `pytest`):
 
 ```
@@ -190,7 +205,7 @@ cambia *dónde* falla más que cuántas veces. El detalle por semilla está en
 
 10 tests de `tests/test_pathfinding.py` (Dijkstra y A* devuelven costo óptimo, con y sin
 camino), `tests/test_recursion.py` (el DFS termina por límite de profundidad y en
-callejones) y `tests/` del resto del sistema.
+callejones) `tests/test_agentes.py` (falsa alarma: el guardia investiga y deja de buscar al caducar la evidencia; puerta bloqueada: replanificación y reorganización de patrullas; hackeo y victoria; simulación completa) y `tests/test_fake_sim.py` (contrato con la UI).
 
 ## 7. Conclusiones y limitaciones
 
