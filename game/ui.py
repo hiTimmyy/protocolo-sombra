@@ -20,6 +20,7 @@ TAM_TILE = 16
 ESCALA = 2
 TILE = TAM_TILE * ESCALA  # 32 px por casilla
 FPS = 30
+ANCHO_PANEL = 280         # panel de monitoreo a la derecha del mapa
 
 # Teclas (WASD / flechas) -> dirección que entiende la simulación.
 TECLAS_DIRECCION = {
@@ -51,6 +52,13 @@ COLOR_BURBUJA_VE = (220, 60, 50)      # burbuja "!"
 COLOR_BURBUJA_BUSCA = (230, 180, 60)  # burbuja "?"
 COLOR_BARRA_FONDO = (30, 30, 40)
 COLOR_BARRA_HACKEO = (90, 200, 120)
+COLOR_PANEL_FONDO = (28, 28, 36)
+COLOR_PANEL_BORDE = (170, 170, 190)
+COLOR_PANEL_TEXTO = (225, 225, 225)
+COLOR_PANEL_TITULO = (250, 230, 170)
+
+# Nivel de alerta global -> color del indicador.
+COLOR_ALERTA = {"verde": (110, 200, 120), "amarilla": (230, 200, 80), "roja": (220, 80, 80)}
 
 
 def _cargar_sprite(nombre: str, color: tuple) -> pygame.Surface:
@@ -199,7 +207,7 @@ def _dibujar_escena(ventana: pygame.Surface, snap: Snapshot, sprites: _Sprites,
 
 
 def _dibujar_fin(ventana: pygame.Surface, snap: Snapshot, fuente: pygame.font.Font) -> None:
-    """Pantalla de victoria / derrota con indicación de reinicio."""
+    """Pantalla de victoria / derrota con indicación de reinicio (centrada en el mapa)."""
     velo = pygame.Surface(ventana.get_size(), pygame.SRCALPHA)
     velo.fill((0, 0, 0, 170))
     ventana.blit(velo, (0, 0))
@@ -207,22 +215,89 @@ def _dibujar_fin(ventana: pygame.Surface, snap: Snapshot, fuente: pygame.font.Fo
         texto, color = "¡VICTORIA! Archivo obtenido", (120, 220, 140)
     else:
         texto, color = "DERROTA", (220, 90, 90)
+    cx = (ventana.get_width() - ANCHO_PANEL) // 2
+    cy = ventana.get_height() // 2
     render = fuente.render(texto, True, color)
-    ventana.blit(render, render.get_rect(center=(ventana.get_width() // 2,
-                                                 ventana.get_height() // 2 - 15)))
+    ventana.blit(render, render.get_rect(center=(cx, cy - 15)))
     ayuda = fuente.render("Pulsa R para reiniciar", True, (230, 230, 230))
-    ventana.blit(ayuda, ayuda.get_rect(center=(ventana.get_width() // 2,
-                                               ventana.get_height() // 2 + 25)))
+    ventana.blit(ayuda, ayuda.get_rect(center=(cx, cy + 25)))
 
 
-def run(sim) -> None:
-    """Bucle principal de la UI: un paso de simulación cada 1/ticks_por_segundo s."""
+def _texto(ventana: pygame.Surface, fuente: pygame.font.Font, contenido: str,
+           pos: tuple, color: tuple = COLOR_PANEL_TEXTO) -> None:
+    ventana.blit(fuente.render(contenido, True, color), pos)
+
+
+def _caja(ventana: pygame.Surface, rect: pygame.Rect) -> None:
+    """Caja estilo menú RPG: fondo oscuro y borde claro."""
+    pygame.draw.rect(ventana, COLOR_PANEL_FONDO, rect, border_radius=4)
+    pygame.draw.rect(ventana, COLOR_PANEL_BORDE, rect, 2, border_radius=4)
+
+
+def _dibujar_panel(ventana: pygame.Surface, snap: Snapshot,
+                   fuente_tit: pygame.font.Font, fuente_txt: pygame.font.Font) -> None:
+    """Panel de monitoreo: alerta global, tiempo restante, guardias y registro."""
+    x0 = ventana.get_width() - ANCHO_PANEL
+    pygame.draw.rect(ventana, COLOR_PANEL_FONDO, (x0, 0, ANCHO_PANEL, ventana.get_height()))
+
+    # Indicador de alerta global y tiempo restante.
+    color_alerta = COLOR_ALERTA.get(snap.alerta, COLOR_PANEL_TEXTO)
+    pygame.draw.circle(ventana, color_alerta, (x0 + 16, 18), 8)
+    _texto(ventana, fuente_tit, f"ALERTA {snap.alerta.upper()}", (x0 + 32, 9), color_alerta)
+    _texto(ventana, fuente_tit, f"{snap.tiempo_restante_s:5.1f} s",
+           (x0 + ANCHO_PANEL - 90, 9))
+
+    # Una caja por guardia con sus datos de monitoreo (solo desde el snapshot).
+    y = 36
+    alto_caja = 92
+    for guardia in snap.guardias:
+        if y + alto_caja > ventana.get_height():
+            break
+        rect = pygame.Rect(x0 + 6, y, ANCHO_PANEL - 12, alto_caja)
+        _caja(ventana, rect)
+        _texto(ventana, fuente_tit, f"Guardia {guardia.id}: {guardia.estado}",
+               (rect.x + 8, y + 6), COLOR_PANEL_TITULO)
+        objetivo = guardia.objetivo if guardia.objetivo is not None else "-"
+        lineas = [
+            f"objetivo: {objetivo} | ruta: {len(guardia.ruta)} casillas",
+            f"percibe: {guardia.percepcion}",
+            f"{guardia.algoritmo} ({guardia.heuristica}) | costo {guardia.costo:.1f}",
+            f"nodos {guardia.nodos_expandidos} | "
+            f"{guardia.tiempo_busqueda_s * 1000:.1f} ms | replan {guardia.replanificaciones}",
+        ]
+        for i, linea in enumerate(lineas):
+            _texto(ventana, fuente_txt, linea, (rect.x + 8, y + 28 + i * 14))
+        y += alto_caja + 6
+
+    # Caja de registro: últimas líneas de snapshot.log (desplazamiento al final).
+    if y < ventana.get_height() - 10:
+        rect = pygame.Rect(x0 + 6, y, ANCHO_PANEL - 12, ventana.get_height() - y - 6)
+        _caja(ventana, rect)
+        _texto(ventana, fuente_tit, "Registro", (rect.x + 8, y + 6), COLOR_PANEL_TITULO)
+        alto_linea = 14
+        primeras = rect.y + 28
+        max_lineas = max(0, (rect.bottom - 6 - primeras) // alto_linea)
+        for i, linea in enumerate(snap.log[-max_lineas:]):
+            _texto(ventana, fuente_txt, linea, (rect.x + 8, primeras + i * alto_linea))
+
+
+def run(sim, fabrica=None) -> None:
+    """Bucle principal de la UI: un paso de simulación cada 1/ticks_por_segundo s.
+
+    `fabrica` se usa al reiniciar con R (crea una simulación nueva); si es None,
+    se reinicia con FakeSimulation.
+    """
+    if fabrica is None:
+        fabrica = FakeSimulation
     pygame.init()
     snap = sim.snapshot()
-    ventana = pygame.display.set_mode((snap.mapa.ancho * TILE, snap.mapa.alto * TILE))
+    ventana = pygame.display.set_mode((snap.mapa.ancho * TILE + ANCHO_PANEL,
+                                       snap.mapa.alto * TILE))
     pygame.display.set_caption("Protocolo Sombra")
     reloj = pygame.time.Clock()
-    fuente = pygame.font.SysFont(None, 28)
+    fuente = pygame.font.SysFont(None, 28)      # textos grandes (pantalla de fin)
+    fuente_tit = pygame.font.SysFont(None, 20)  # títulos del panel
+    fuente_txt = pygame.font.SysFont(None, 16)  # texto del panel
     sprites = _Sprites()
 
     activo = True
@@ -285,12 +360,13 @@ def run(sim) -> None:
             # Dibujo de la escena (y pantalla de fin si ganó o perdió).
             _dibujar_escena(ventana, snap, sprites, fuente,
                             nox_prev, guardias_prev, fraccion)
+            _dibujar_panel(ventana, snap, fuente_tit, fuente_txt)
             if snap.resultado != "jugando":
                 _dibujar_fin(ventana, snap, fuente)
             pygame.display.flip()
 
         if activo:
-            sim = FakeSimulation()  # R: reiniciar con una simulación nueva
+            sim = fabrica()  # R: reiniciar con una simulación nueva
             snap = sim.snapshot()
 
     pygame.quit()
